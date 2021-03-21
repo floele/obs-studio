@@ -27,7 +27,7 @@ extern "C" {
 
 #define MAX_AUDIO_MIXES 6
 #define MAX_AUDIO_CHANNELS 8
-#define AUDIO_OUTPUT_FRAMES 1024
+#define AUDIO_OUTPUT_FRAMES 512
 
 #define TOTAL_AUDIO_SIZE                                              \
 	(MAX_AUDIO_MIXES * MAX_AUDIO_CHANNELS * AUDIO_OUTPUT_FRAMES * \
