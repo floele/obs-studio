@@ -204,7 +204,8 @@ static void *audio_thread(void *param)
 	uint64_t prev_time = start_time;
 	uint64_t audio_time = prev_time;
 	uint32_t audio_wait_time = (uint32_t)(
-		audio_frames_to_ns(rate, AUDIO_OUTPUT_FRAMES) / 1000000);
+		audio_frames_to_ns(rate, AUDIO_OUTPUT_FRAMES));
+		//audio_frames_to_ns(rate, AUDIO_OUTPUT_FRAMES) / 1000000);
 
 	os_set_thread_name("audio-io: audio thread");
 
@@ -215,8 +216,8 @@ static void *audio_thread(void *param)
 	while (os_event_try(audio->stop_event) == EAGAIN) {
 		uint64_t cur_time;
 
-		os_sleep_ms(audio_wait_time);
-
+		nanosleep(audio_wait_time);
+		//os_sleep_ms(audio_wait_time);
 		profile_start(audio_thread_name);
 
 		cur_time = os_gettime_ns();

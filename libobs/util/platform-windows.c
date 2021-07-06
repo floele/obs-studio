@@ -363,6 +363,29 @@ void os_sleep_ms(uint32_t duration)
 	Sleep(duration);
 }
 
+/* Windows sleep in 100ns units */
+bool nanosleep(__int64 ns)
+{
+	/* Declarations */
+	HANDLE timer;     /* Timer handle */
+	LARGE_INTEGER li; /* Time defintion */
+	/* Create timer */
+	if (!(timer = CreateWaitableTimer(NULL, TRUE, NULL)))
+		return false;
+	/* Set timer properties */
+	li.QuadPart = -ns;
+	if (!SetWaitableTimer(timer, &li, 0, NULL, NULL, FALSE)) {
+		CloseHandle(timer);
+		return false;
+	}
+	/* Start & wait for timer */
+	WaitForSingleObject(timer, INFINITE);
+	/* Clean resources */
+	CloseHandle(timer);
+	/* Slept without problems */
+	return true;
+}
+
 uint64_t os_gettime_ns(void)
 {
 	LARGE_INTEGER current_time;
