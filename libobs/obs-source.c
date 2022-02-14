@@ -1330,11 +1330,16 @@ static void source_output_audio_place(obs_source_t *source,
 		return;
 
 	for (size_t i = 0; i < channels; i++) {
-		circlebuf_place(&source->audio_input_buf[i], buf_placement,
-				in->data[i], size);
-		circlebuf_pop_back(&source->audio_input_buf[i], NULL,
-				   source->audio_input_buf[i].size -
-					   (buf_placement + size));
+		if (buf_placement > source->audio_input_buf[i].size) {
+			circlebuf_push_back(&source->audio_input_buf[i],
+					    in->data[i], size);
+		} else {
+			circlebuf_place(&source->audio_input_buf[i],
+					buf_placement, in->data[i], size);
+			circlebuf_pop_back(&source->audio_input_buf[i], NULL,
+					   source->audio_input_buf[i].size -
+						   (buf_placement + size));
+		}
 	}
 
 	source->last_audio_input_buf_size = 0;
