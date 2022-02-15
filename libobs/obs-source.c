@@ -1242,6 +1242,7 @@ static inline size_t conv_time_to_frames(const size_t sample_rate,
 /* time threshold in nanoseconds to ensure audio timing is as seamless as
  * possible */
 #define TS_SMOOTHING_THRESHOLD 70000000ULL
+#define DEBUG_AUDIO 1
 
 static inline void reset_audio_timing(obs_source_t *source, uint64_t timestamp,
 				      uint64_t os_time)
@@ -1400,7 +1401,6 @@ static void source_output_audio_data(obs_source_t *source,
 		source->timing_adjust = 0;
 		source->timing_set = true;
 		using_direct_ts = true;
-	} else {
 	}
 
 	if (!source->timing_set) {
@@ -1408,6 +1408,8 @@ static void source_output_audio_data(obs_source_t *source,
 
 	} else if (source->next_audio_ts_min != 0) {
 		diff = uint64_diff(source->next_audio_ts_min, in.timestamp);
+		if (diff > TS_SMOOTHING_THRESHOLD) {
+			blog(LOG_WARNING,
 			     "diff > TS_SMOOTHING_THRESHOLD #1: %i", diff);
 		}
 

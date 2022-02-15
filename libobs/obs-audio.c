@@ -24,7 +24,7 @@ struct ts_info {
 	uint64_t end;
 };
 
-#define DEBUG_AUDIO 0
+#define DEBUG_AUDIO 1
 #define DEBUG_LAGGED_AUDIO 0
 #define MAX_BUFFERING_TICKS 45
 
