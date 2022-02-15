@@ -24,7 +24,7 @@ struct ts_info {
 	uint64_t end;
 };
 
-#define DEBUG_AUDIO 0
+#define DEBUG_AUDIO 1
 #define DEBUG_LAGGED_AUDIO 0
 #define MAX_BUFFERING_TICKS 45
 
@@ -282,10 +282,6 @@ static inline void discard_audio(struct obs_core_audio *audio,
 
 	source->last_audio_input_buf_size = 0;
 
-#if DEBUG_AUDIO == 1
-	if (is_audio_source)
-		blog(LOG_DEBUG, "audio discarded, new ts: %" PRIu64, ts->end);
-#endif
 
 	source->pending_stop = false;
 	source->audio_ts = ts->end;
@@ -310,7 +306,7 @@ static void add_audio_buffering(struct obs_core_audio *audio,
 
 	offset = ts->start - min_ts;
 	frames = ns_to_audio_frames(sample_rate, offset);
-	ticks = (int)((frames + AUDIO_OUTPUT_FRAMES - 1) / AUDIO_OUTPUT_FRAMES);
+	ticks = (int)((frames + AUDIO_OUTPUT_FRAMES - 1) / AUDIO_OUTPUT_FRAMES); // use 4 for more buffering
 
 	audio->total_buffering_ticks += ticks;
 
@@ -464,7 +460,7 @@ bool audio_callback(void *param, uint64_t start_ts_in, uint64_t end_ts_in,
 	audio_size = AUDIO_OUTPUT_FRAMES * sizeof(float);
 
 #if DEBUG_AUDIO == 1
-	blog(LOG_DEBUG, "ts %llu-%llu", ts.start, ts.end);
+	//blog(LOG_DEBUG, "ts %llu-%llu", ts.start, ts.end);
 #endif
 
 	/* ------------------------------------------------ */
@@ -495,6 +491,32 @@ bool audio_callback(void *param, uint64_t start_ts_in, uint64_t end_ts_in,
 	/* render audio data */
 	for (size_t i = 0; i < audio->render_order.num; i++) {
 		obs_source_t *source = audio->render_order.array[i];
+
+		///* Waitt for buffer?
+		if (!source->audio_pending && source->audio_ts > 0) {
+			int iterations = 0;
+			// MAX 13 iterations (gap at 14) (check audio->total_buffering_ticks)
+			/*
+			while (source->audio_input_buf[0].size < 4096) {
+				blog(LOG_DEBUG,
+				     "waiting 2 ms for audio buffer to fill (%s)",
+				     obs_source_get_name(source));
+				os_sleep_ms(2);
+				iterations++;
+			}
+
+			if (iterations > 0) {
+				blog(LOG_DEBUG,
+				     "waited %i iterations for the audio buffer to fill",
+				     iterations);
+			}
+			*/
+			if (source->audio_input_buf[0].size < audio_size) {
+				return false;
+			}
+		}
+		//*/
+
 		obs_source_audio_render(source, mixers, channels, sample_rate,
 					audio_size);
 
@@ -512,7 +534,7 @@ bool audio_callback(void *param, uint64_t start_ts_in, uint64_t end_ts_in,
 				source->audio_pending = true;
 #if DEBUG_AUDIO == 1
 				/* this should really be fixed */
-				assert(false);
+				//assert(false);
 #endif
 			} else {
 				pthread_mutex_lock(&source->audio_buf_mutex);
@@ -538,6 +560,10 @@ bool audio_callback(void *param, uint64_t start_ts_in, uint64_t end_ts_in,
 	pthread_mutex_unlock(&data->audio_sources_mutex);
 
 	/* ------------------------------------------------ */
+	if (false && audio->total_buffering_ticks <= 0) {
+		add_audio_buffering(audio, sample_rate, &ts, min_ts,
+				    buffering_name);
+	}
 	/* if a source has gone backward in time, buffer */
 	if (min_ts < ts.start)
 		add_audio_buffering(audio, sample_rate, &ts, min_ts,

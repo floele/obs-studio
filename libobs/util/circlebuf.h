@@ -35,7 +35,7 @@ struct circlebuf {
 
 	size_t start_pos;
 	size_t end_pos;
-	size_t capacity;
+	size_t capacity
 };
 
 static inline void circlebuf_init(struct circlebuf *cb)
@@ -123,10 +123,14 @@ static inline void circlebuf_place(struct circlebuf *cb, size_t position,
 	size_t end_point = position + size;
 	size_t data_end_pos;
 
+	if (((int *)data)[0] == 0 && ((int *)data)[1] == 0) {
+		//blog(LOG_INFO, "buffer empty");
+	}
+
 	if (end_point > cb->size)
 		circlebuf_upsize(cb, end_point);
 
-	position += cb->start_pos;
+	//position += cb->start_pos;
 	if (position >= cb->capacity)
 		position -= cb->capacity;
 
@@ -149,6 +153,10 @@ static inline void circlebuf_push_back(struct circlebuf *cb, const void *data,
 
 	cb->size += size;
 	circlebuf_ensure_capacity(cb);
+
+	if (data && ((int *)data)[0] == 0 && ((int *)data)[1] == 0) {
+		//blog(LOG_INFO, "buffer empty");
+	}
 
 	if (new_end_pos > cb->capacity) {
 		size_t back_size = cb->capacity - cb->end_pos;
@@ -246,6 +254,10 @@ static inline void circlebuf_peek_front(struct circlebuf *cb, void *data,
 		} else {
 			memcpy(data, (uint8_t *)cb->data + cb->start_pos, size);
 		}
+	}
+
+	if (data && ((int *)data)[0] == 0 && ((int *)data)[1] == 0) {
+		//blog(LOG_INFO, "buffer empty");
 	}
 }
 
