@@ -1300,7 +1300,6 @@ static inline size_t get_buf_placement(audio_t *audio, uint64_t offset)
 	uint32_t sample_rate = audio_output_get_sample_rate(audio);
 	return (size_t)util_mul_div64(offset, sample_rate, 1000000000ULL);
 }
-
 static void source_output_audio_place(obs_source_t *source,
 				      const struct audio_data *in)
 {
@@ -1396,6 +1395,7 @@ static void source_output_audio_data(obs_source_t *source,
 		source->timing_adjust = 0;
 		source->timing_set = true;
 		using_direct_ts = true;
+	} else {
 	}
 
 	if (!source->timing_set) {
@@ -1403,6 +1403,8 @@ static void source_output_audio_data(obs_source_t *source,
 
 	} else if (source->next_audio_ts_min != 0) {
 		diff = uint64_diff(source->next_audio_ts_min, in.timestamp);
+			     "diff > TS_SMOOTHING_THRESHOLD #1: %i", diff);
+		}
 
 		/* smooth audio if within threshold */
 		if (diff > MAX_TS_VAR && !using_direct_ts)
@@ -1428,7 +1430,10 @@ static void source_output_audio_data(obs_source_t *source,
 
 	} else if (source->next_audio_sys_ts_min) {
 		diff = uint64_diff(source->next_audio_sys_ts_min, in.timestamp);
-
+		if (diff > TS_SMOOTHING_THRESHOLD) {
+			blog(LOG_WARNING,
+			     "diff > TS_SMOOTHING_THRESHOLD #2: %i", diff);
+		}
 		if (diff < TS_SMOOTHING_THRESHOLD) {
 			push_back = true;
 
