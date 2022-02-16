@@ -282,11 +282,6 @@ static inline void discard_audio(struct obs_core_audio *audio,
 
 	source->last_audio_input_buf_size = 0;
 
-#if DEBUG_AUDIO == 1
-	if (is_audio_source)
-		blog(LOG_DEBUG, "audio discarded, new ts: %" PRIu64, ts->end);
-#endif
-
 	source->pending_stop = false;
 	source->audio_ts = ts->end;
 }
@@ -463,10 +458,6 @@ bool audio_callback(void *param, uint64_t start_ts_in, uint64_t end_ts_in,
 
 	audio_size = AUDIO_OUTPUT_FRAMES * sizeof(float);
 
-#if DEBUG_AUDIO == 1
-	blog(LOG_DEBUG, "ts %llu-%llu", ts.start, ts.end);
-#endif
-
 	/* ------------------------------------------------ */
 	/* build audio render order
 	 * NOTE: these are source channels, not audio channels */
@@ -495,6 +486,13 @@ bool audio_callback(void *param, uint64_t start_ts_in, uint64_t end_ts_in,
 	/* render audio data */
 	for (size_t i = 0; i < audio->render_order.num; i++) {
 		obs_source_t *source = audio->render_order.array[i];
+		if (!source->audio_pending && source->audio_ts > 0) {
+			if (source->audio_input_buf[0].size < audio_size) {
+				blog(LOG_DEBUG, "waiting for buffer");
+				return false;
+			}
+		}
+
 		obs_source_audio_render(source, mixers, channels, sample_rate,
 					audio_size);
 
